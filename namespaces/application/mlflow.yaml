@@ -1,29 +1,67 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: mlflow-postgres
+  name: mlflow
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
-  destination:
-    namespace: application
-    server: https://kubernetes.default.svc
-
   project: default
 
   source:
-    repoURL: https://charts.bitnami.com/bitnami
-    chart: postgresql
-    targetRevision: 12.5.6
+    repoURL: https://community-charts.github.io/helm-charts
+    chart: mlflow
+    targetRevision: 1.6.2
     helm:
+      releaseName: mlflow
       valuesObject:
-        auth:
-          username: mlflow
-          password: mlflowpass
-          database: mlflow
+        replicaCount: 1
 
-        primary:
-          persistence:
-            enabled: false
+        service:
+          type: ClusterIP
+          port: 5000
+
+        auth:
+          enabled: false
+
+        postgresql:
+          enabled: false
+
+        backendStore:
+          databaseMigration: true
+          databaseConnectionCheck: true
+          postgres:
+            enabled: true
+            host: mlflow-postgres-postgresql.application.svc.cluster.local
+            port: 5432
+            database: mlflow
+            user: mlflow
+            password: mlflowpass
+
+        artifactRoot:
+          s3:
+            enabled: true
+            bucket: mlflow-artifacts
+            awsAccessKeyId: minio
+            awsSecretAccessKey: minio123
+
+        extraEnvVars:
+          MLFLOW_S3_ENDPOINT_URL: "http://minio.application.svc.cluster.local:9000"
+          AWS_ACCESS_KEY_ID: "minio"
+          AWS_SECRET_ACCESS_KEY: "minio123"
+          AWS_DEFAULT_REGION: "us-east-1"
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+  destination:
+    namespace: application
+    server: https://kubernetes.default.svc
 
   syncPolicy:
     automated:
