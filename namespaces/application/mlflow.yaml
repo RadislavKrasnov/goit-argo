@@ -3,13 +3,9 @@ kind: Application
 metadata:
   name: mlflow
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  destination:
-    namespace: application
-    server: https://kubernetes.default.svc
+
   source:
     repoURL: https://community-charts.github.io/helm-charts
     chart: mlflow
@@ -17,24 +13,44 @@ spec:
     helm:
       releaseName: mlflow
       valuesObject:
+        replicaCount: 1
+
         service:
           type: ClusterIP
           port: 5000
+
         auth:
           enabled: false
+
         postgresql:
           enabled: false
+
+        backendStore:
+          databaseMigration: true
+          databaseConnectionCheck: true
+          postgres:
+            enabled: true
+            host: mlflow-postgres-postgresql.application.svc.cluster.local
+            port: 5432
+            database: mlflow
+            user: mlflow
+            password: mlflowpass
+
+        artifactRoot:
+          s3:
+            enabled: true
+            bucket: mlflow-artifacts
+            awsAccessKeyId: minio
+            awsSecretAccessKey: minio123
+
         extraEnvVars:
-          AWS_ACCESS_KEY_ID: minio
-          AWS_SECRET_ACCESS_KEY: minio123
-          MLFLOW_S3_ENDPOINT_URL: http://minio.application.svc.cluster.local:9000
-          MLFLOW_BACKEND_STORE_URI: postgresql://mlflow:mlflowpass@mlflow-postgres-postgresql.application.svc.cluster.local:5432/mlflow
-          MLFLOW_ARTIFACT_ROOT: s3://mlflow-artifacts
-        extraArgs:
-          backend-store-uri: $(MLFLOW_BACKEND_STORE_URI)
-          default-artifact-root: $(MLFLOW_ARTIFACT_ROOT)
-          host: 0.0.0.0
-          port: "5000"
+          MLFLOW_S3_ENDPOINT_URL: "http://minio.application.svc.cluster.local:9000"
+          AWS_ACCESS_KEY_ID: "minio"
+          AWS_SECRET_ACCESS_KEY: "minio123"
+          AWS_DEFAULT_REGION: "us-east-1"
+
+        extraArgs: {}
+
         resources:
           requests:
             cpu: 100m
@@ -42,6 +58,11 @@ spec:
           limits:
             cpu: 500m
             memory: 512Mi
+
+  destination:
+    namespace: application
+    server: https://kubernetes.default.svc
+
   syncPolicy:
     automated:
       prune: true
