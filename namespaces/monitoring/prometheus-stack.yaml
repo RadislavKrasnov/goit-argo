@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 75.16.1
+    helm:
+      releaseName: prometheus-stack
+      valuesObject:
+        grafana:
+          enabled: true
+          ingress:
+            enabled: false
+          adminPassword: prom-operator
+
+        prometheus:
+          enabled: true
+          ingress:
+            enabled: false
+          prometheusSpec:
+            serviceMonitorSelector: {}
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelector: {}
+            podMonitorSelectorNilUsesHelmValues: false
+            retention: 2d
+
+        alertmanager:
+          enabled: true
+          ingress:
+            enabled: false
+
+        defaultRules:
+          create: true
+          rules:
+            cpu: true
+            memory: true
+
+        kube-state-metrics:
+          enabled: true
+
+        prometheus-node-exporter:
+          enabled: true
+
+        prometheusOperator:
+          admissionWebhooks:
+            enabled: false
+            patch:
+              enabled: false
+          tls:
+            enabled: false
+
+  destination:
+    namespace: monitoring
+    server: https://kubernetes.default.svc
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
