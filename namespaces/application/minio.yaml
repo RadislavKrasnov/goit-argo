@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: minio
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   destination:
     namespace: application
@@ -13,6 +15,7 @@ spec:
     chart: minio
     targetRevision: 13.7.2
     helm:
+      releaseName: minio
       valuesObject:
         image:
           registry: docker.io
@@ -30,6 +33,15 @@ spec:
 
         persistence:
           enabled: false
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
   syncPolicy:
     automated:
       prune: true

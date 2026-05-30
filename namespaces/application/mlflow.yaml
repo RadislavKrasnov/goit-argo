@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: mlflow
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   project: default
 
@@ -48,8 +50,6 @@ spec:
           AWS_ACCESS_KEY_ID: "minio"
           AWS_SECRET_ACCESS_KEY: "minio123"
           AWS_DEFAULT_REGION: "us-east-1"
-
-        extraArgs: {}
 
         resources:
           requests:
