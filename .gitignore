@@ -1,0 +1,18 @@
+# Local variable files containing secrets
+*.tfvars
+*.tfvars.json
+
+# Terraform state files (currently sitting in your ./state folder)
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+
+# Local working directories and overrides
+.terraform/
+.terraform.lock.hcl
+*.override.tf
+*.override.tf.json
+
+# Large ML files (Optional but highly recommended)
+model.pt
+*.jpg
