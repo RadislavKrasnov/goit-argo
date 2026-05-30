@@ -3,11 +3,8 @@ kind: Application
 metadata:
   name: mlflow
   namespace: argocd
-  annotations:
-    argocd.argoproj.io/sync-wave: "1"
 spec:
   project: default
-
   source:
     repoURL: https://community-charts.github.io/helm-charts
     chart: mlflow
@@ -15,8 +12,6 @@ spec:
     helm:
       releaseName: mlflow
       valuesObject:
-        replicaCount: 1
-
         service:
           type: ClusterIP
           port: 5000
@@ -27,37 +22,26 @@ spec:
         postgresql:
           enabled: false
 
-        backendStore:
-          databaseMigration: true
-          databaseConnectionCheck: true
-          postgres:
-            enabled: true
-            host: mlflow-postgres-postgresql.application.svc.cluster.local
-            port: 5432
-            database: mlflow
-            user: mlflow
-            password: mlflowpass
-
-        artifactRoot:
-          s3:
-            enabled: true
-            bucket: mlflow-artifacts
-            awsAccessKeyId: minio
-            awsSecretAccessKey: minio123
-
-        extraEnvVars:
-          MLFLOW_S3_ENDPOINT_URL: "http://minio.application.svc.cluster.local:9000"
-          AWS_ACCESS_KEY_ID: "minio"
-          AWS_SECRET_ACCESS_KEY: "minio123"
-          AWS_DEFAULT_REGION: "us-east-1"
-
         resources:
           requests:
-            cpu: 100m
-            memory: 256Mi
-          limits:
-            cpu: 500m
+            cpu: 250m
             memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1536Mi
+
+        extraEnvVars:
+          AWS_ACCESS_KEY_ID: "minio"
+          AWS_SECRET_ACCESS_KEY: "minio123"
+          MLFLOW_S3_ENDPOINT_URL: "http://minio.application.svc.cluster.local:9000"
+          MLFLOW_BACKEND_STORE_URI: "postgresql://mlflow:mlflowpass@mlflow-postgres-postgresql.application.svc.cluster.local:5432/mlflow"
+          MLFLOW_ARTIFACT_ROOT: "s3://mlflow-artifacts"
+
+        extraArgs:
+          backend-store-uri: "$(MLFLOW_BACKEND_STORE_URI)"
+          default-artifact-root: "$(MLFLOW_ARTIFACT_ROOT)"
+          host: "0.0.0.0"
+          port: "5000"
 
   destination:
     namespace: application
@@ -68,6 +52,5 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
       - ServerSideApply=true
       - SkipDryRunOnMissingResource=true
